@@ -14,7 +14,7 @@ import { basename } from 'path';
 import * as jsonToAst from "json-to-ast";
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
-import { makeLint, LinterProblem } from './linter';
+import { lint, LinterProblem } from './linter';
 
 let conn = createConnection(ProposedFeatures.all);
 let docs = new TextDocuments();
@@ -34,7 +34,6 @@ conn.onInitialize((params: InitializeParams) => {
 		}
 	};
 });
-
 
 function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
@@ -71,55 +70,22 @@ function GetMessage(key: RuleKeys): string {
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = textDocument.uri;
     const json = textDocument.getText();
-    const validateObject = (
-        obj: jsonToAst.AstObject
-    ): LinterProblem<RuleKeys>[] =>
-        obj.children.some(p => p.key.value === 'block')
-            ? []
-            : [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }];
+    const array: Array<LinterProblem> = lint(json);
+    let diagnostics: Diagnostic[] = [];
+    array.forEach((item: any) => {
+        console.log(item.location.start);
+        let diagnostic: Diagnostic = {
+            severity: DiagnosticSeverity.Warning,
+            range: {
+                start: textDocument.positionAt(item.location.start.column),
+                end: textDocument.positionAt(item.location.end.column)
+            },
+            message: item.error,
+            source: item.code
+        };
+        diagnostics.push(diagnostic);
+    });
 
-    const validateProperty = (
-        property: jsonToAst.AstProperty
-    ): LinterProblem<RuleKeys>[] => {
-		return /^[A-Z]+$/.test(property.key.value)
-            ? [
-                  {
-                      key: RuleKeys.UppercaseNamesIsForbidden,
-                      loc: property.loc
-                  }
-              ]
-			: [];
-	};
-    const diagnostics: Diagnostic[] = makeLint(
-        json,
-        validateProperty,
-		validateObject,
-    ).reduce(
-        (
-            list: Diagnostic[],
-            problem: LinterProblem<RuleKeys>
-        ): Diagnostic[] => {
-            const severity = GetSeverity(problem.key);
-            if (severity) {
-                const message = GetMessage(problem.key);
-
-                let diagnostic: Diagnostic = {
-                    range: {
-                        start: textDocument.positionAt(
-                            problem.loc.start.offset
-                        ),
-                        end: textDocument.positionAt(problem.loc.end.offset)
-                    },
-                    severity,
-                    message,
-                    source
-                };
-                list.push(diagnostic);
-			}
-            return list;
-        },
-        []
-    );
     if (diagnostics.length) {
         conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
     }
