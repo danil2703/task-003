@@ -18,11 +18,10 @@ export function makeLint<TProblemKey>(
         cbObj: (property: jsonToAst.AstObject) => LinterProblem<TProblemKey>[],
         errors: LinterProblem<TProblemKey>[]
     ) {
-        console.log(json);
         switch (node.type) {
             case 'Array':
                 node.children.forEach((item: jsonToAst.AstJsonEntity) => {
-                    errors = walk(item, cbProp, cbObj, errors);
+                    walk(item, cbProp, cbObj, errors);
                 });
                 break;
             case 'Object':
@@ -33,7 +32,7 @@ export function makeLint<TProblemKey>(
                 if(cbProp(property).length) {
                     cbProp(property);
                 }
-                    errors = walk(property.value, cbProp, cbObj, errors);
+                    walk(property.value, cbProp, cbObj, errors);
                 });
                 break;
         }
@@ -50,6 +49,5 @@ export function makeLint<TProblemKey>(
             (obj: jsonToAst.AstObject) => validateObject(obj),
             errors);
     }
-    console.log(errors);
     return errors;
 }

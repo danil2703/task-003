@@ -90,7 +90,12 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
             const onDiskPath = vscode.Uri.file(
                 join(context.extensionPath, 'preview', 'style.css')
             );
-            const scriptUri = onDiskPath.with({ scheme: 'vscode-resource' });
+            const styletUri = onDiskPath.with({ scheme: 'vscode-resource' });
+
+            const onDiskStylePath = vscode.Uri.file(
+                join(context.extensionPath, 'src', 'script.js')
+            );
+            const scriptUri = onDiskStylePath.with({ scheme: 'vscode-resource' });
 
             panel.webview.html = previewHtml 
                 .replace(/{{\s+(\w+)\s+}}/g, (str, key) => {
@@ -100,7 +105,9 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
                         case 'mediaPath':
                             return getMediaPath(context);
                         case 'link': 
-                            return `<link rel="stylesheet" href="${scriptUri}"></link>`;
+                            return `<link rel="stylesheet" href="${styletUri}"></link>`;
+                        case 'script': 
+                            return `<script src="${scriptUri}"></script>`;
                         default:
                             return str;
                     }
